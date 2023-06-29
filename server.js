@@ -8,10 +8,10 @@ const { Strategy } = require('passport-google-oauth20');
 const cookieSession = require('cookie-session');
 
 require('dotenv').config();
-const PORT = 3000;
+
 const config = {
-  CLIENT_ID: process.env.CLIENT_ID,
-  CLIENT_SECRET: process.env.CLIENT_SECRET,
+  CLIENT_ID: "897839330594-3vljknin9i0ftdp5q70pspgl4it2qlkd.apps.googleusercontent.com",
+  CLIENT_SECRET: "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",
   COOKIE_KEY_1: process.env.COOKIE_KEY_1,
   COOKIE_KEY_2: process.env.COOKIE_KEY_2,
 };
@@ -20,23 +20,33 @@ const AUTH_OPTIONS = {
   callbackURL: '/auth/google/callback',
   clientID: config.CLIENT_ID,
   clientSecret: config.CLIENT_SECRET,
+  accessType:'offline',
+  prompt:'consent',
+  approvalPrompt:'force'
 };
 function verifyCallback(accessToken, refreshToken, profile, done) {
   console.log('Google profile', profile);
+  console.log('Google refreshToken', refreshToken);
+  console.log('Google accessToken', accessToken);
+
   done(null, profile);
 }
 passport.use(new Strategy(AUTH_OPTIONS, verifyCallback));
 passport.serializeUser((user, done) => {
+  // console.log(user);
   done(null, user.id);
 });
 passport.deserializeUser((id, done) => {
+  // User.findById(id).then((user) => {
+  //   done(null, user);
+  // });
   done(null, id);
 });
 
-
+const PORT = process.env.PORT || 3001;
 const app = express();
 
-app.use(helmet());
+// app.use(helmet());
 app.use(
   cookieSession({
     name: 'session',
@@ -61,14 +71,16 @@ function checkLoggedIn(req, res, next) {
 app.get(
   '/auth/google',
   passport.authenticate('google', {
-    scope: ['email'],
+    scope: ['email','https://www.googleapis.com/auth/calendar.events'],
+    accessType:'offline',
+    prompt:'consent',
   })
 );
 app.get(
   '/auth/google/callback',
   passport.authenticate('google', {
-    failureRedirect: '/failure',
-    successRedirect: '/',
+    // failureRedirect: '/failure',
+    // successRedirect: '/',
     session: true,
   }),
   (req, res) => {
@@ -89,14 +101,13 @@ app.get('/', function (req, res) {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-https
-  .createServer(
-    {
-      key: fs.readFileSync('key.pem'),
-      cert: fs.readFileSync('cert.pem'),
-    },
+
+    // {
+    //   key: fs.readFileSync('key.pem'),
+    //   cert: fs.readFileSync('cert.pem'),
+    // },
     app
-  )
+
   .listen(PORT, () => {
     console.log(`Listening on port ${PORT}...`);
   });
